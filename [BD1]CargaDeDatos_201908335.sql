@@ -1,0 +1,185 @@
+INSERT INTO PAIS (Nombre)
+    select distinct 
+    TEMPORAL.PAIS_EMPLEADO 
+    from TEMPORAL 
+    WHERE (TEMPORAL.PAIS_TIENDA = TEMPORAL.PAIS_CLIENTE 
+    or TEMPORAL.PAIS_CLIENTE  = TEMPORAL.PAIS_EMPLEADO
+    or TEMPORAL.PAIS_TIENDA = TEMPORAL.PAIS_EMPLEADO)
+    and (TEMPORAL.PAIS_EMPLEADO not like '-' );
+
+
+INSERT INTO CIUDAD (Nombre)
+    select distinct 
+    TEMPORAL.CIUDAD_EMPLEADO
+    from TEMPORAL 
+    WHERE (TEMPORAL.CIUDAD_TIENDA = TEMPORAL.CIUDAD_CLIENTE 
+    or TEMPORAL.CIUDAD_CLIENTE  = TEMPORAL.CIUDAD_EMPLEADO
+    or TEMPORAL.CIUDAD_TIENDA = TEMPORAL.CIUDAD_EMPLEADO)
+    and (TEMPORAL.CIUDAD_EMPLEADO not like '-' );
+            
+
+INSERT INTO DIRECCION (Nombre)
+    select distinct 
+    TEMPORAL.DIRECCION_EMPLEADO 
+    from TEMPORAL 
+    WHERE  TEMPORAL.DIRECCION_EMPLEADO not like '-' ;
+
+
+INSERT INTO TIENDA (Nombre, Nombre_E, Apellido_E, Codigo_Postal, Id_Pais, Id_Ciudad, Id_Direccion)
+    select distinct 
+    TEMPORAL.NOMBRE_TIENDA, 
+    SUBSTR(TEMPORAL.ENCARGADO_TIENDA, 1, INSTR(TEMPORAL.ENCARGADO_TIENDA, ' ')-1),
+    SUBSTR(TEMPORAL.ENCARGADO_TIENDA, INSTR(TEMPORAL.ENCARGADO_TIENDA, ' ')+1),
+    TO_NUMBER(REPLACE(TEMPORAL.CODIGO_POSTAL_TIENDA,'-',0),'99999'),
+    pais.id_pais, 
+    ciudad.id_ciudad,
+    direccion.id_direccion
+    from TEMPORAL 
+    inner join PAIS on pais.nombre = TEMPORAL.PAIS_TIENDA
+    inner join CIUDAD on ciudad.nombre = TEMPORAL.CIUDAD_TIENDA
+    inner join DIRECCION on direccion.nombre = TEMPORAL.DIRECCION_TIENDA
+    WHERE (TEMPORAL.NOMBRE_TIENDA not like '-');
+
+
+INSERT INTO CLIENTE (Nombre, Apellido, Correo, Activo, Fecha_Registro, Tienda_Preferida, Codigo_Postal, Id_Pais, Id_Ciudad, Id_Direccion)
+    select distinct 
+    SUBSTR(TEMPORAL.NOMBRE_CLIENTE, 1, INSTR(TEMPORAL.NOMBRE_CLIENTE, ' ')-1),
+    SUBSTR(TEMPORAL.NOMBRE_CLIENTE, INSTR(TEMPORAL.NOMBRE_CLIENTE, ' ')+1),
+    TEMPORAL.CORREO_CLIENTE,
+    TO_CHAR(TEMPORAL.CLIENTE_ACTIVO), 
+    TO_TIMESTAMP(TEMPORAL.FECHA_CREACION,'YYYY-MM-DD HH24:MI:SS.FF'), 
+    TEMPORAL.TIENDA_PREFERIDA, 
+    TO_NUMBER(REPLACE(TEMPORAL.CODIGO_POSTAL_CLIENTE,'-',0),'99999'),
+    pais.id_pais, 
+    ciudad.id_ciudad,
+    DIRECCION.Id_Direccion
+    from TEMPORAL 
+    inner join PAIS on pais.nombre = TEMPORAL.PAIS_CLIENTE
+    inner join CIUDAD on ciudad.nombre = TEMPORAL.CIUDAD_CLIENTE
+    inner join DIRECCION on DIRECCION.nombre = TEMPORAL.DIRECCION_CLIENTE
+    WHERE (TEMPORAL.NOMBRE_CLIENTE not like '-');
+
+
+INSERT INTO EMPLEADO (Nombre, Apellido, Correo, Activo, Tienda_Asignado, Usuario, Contrasenia, Codigo_Postal, Id_Pais, Id_Ciudad, Id_Direccion, Id_Tienda)
+    select distinct 
+    SUBSTR(TEMPORAL.NOMBRE_EMPLEADO, 1, INSTR(TEMPORAL.NOMBRE_EMPLEADO, ' ')-1),
+    SUBSTR(TEMPORAL.NOMBRE_EMPLEADO, INSTR(TEMPORAL.NOMBRE_EMPLEADO, ' ')+1),
+    TEMPORAL.CORREO_EMPLEADO,
+    TO_CHAR(TEMPORAL.EMPLEADO_ACTIVO), 
+    TEMPORAL.TIENDA_EMPLEADO, 
+    TEMPORAL.USUARIO_EMPLEADO,
+    TEMPORAL.CONTRASENA_EMPLEADO,
+    TO_NUMBER(REPLACE(TEMPORAL.CODIGO_POSTAL_EMPLEADO,'-',0),'99999'),
+    pais.id_pais, 
+    ciudad.id_ciudad,
+    DIRECCION.Id_Direccion,
+    tienda.id_tienda
+    from TEMPORAL 
+    inner join PAIS on pais.nombre = TEMPORAL.PAIS_EMPLEADO
+    inner join CIUDAD on ciudad.nombre = TEMPORAL.CIUDAD_EMPLEADO
+    inner join DIRECCION on DIRECCION.nombre = TEMPORAL.DIRECCION_EMPLEADO
+    inner join TIENDA on tienda.nombre = TEMPORAL.TIENDA_EMPLEADO;
+
+
+INSERT INTO RENTA (Fecha_Renta, Fecha_Retorno, Monto, Fecha_Pago, Id_Empleado, Id_Cliente)
+    select distinct 
+    TO_TIMESTAMP(TEMPORAL.FECHA_RENTA,'YYYY-MM-DD HH24:MI:SS.FF'), 
+    TO_TIMESTAMP(TEMPORAL.FECHA_RETORNO,'YYYY-MM-DD HH24:MI:SS.FF'), 
+    TO_NUMBER(REPLACE(TEMPORAL.MONTO_A_PAGAR,'-',0),'99999.99'),
+    TO_TIMESTAMP(TEMPORAL.FECHA_PAGO,'YYYY-MM-DD HH24:MI:SS.FF'), 
+    EMPLEADO.Id_Empleado,
+    CLIENTE.Id_Cliente
+    from TEMPORAL 
+    inner join CLIENTE on CLIENTE.nombre = SUBSTR(TEMPORAL.NOMBRE_CLIENTE, 1, INSTR(TEMPORAL.NOMBRE_CLIENTE, ' ')-1) 
+    and SUBSTR(TEMPORAL.NOMBRE_EMPLEADO, 1, INSTR(TEMPORAL.NOMBRE_EMPLEADO, ' ')-1) != SUBSTR(TEMPORAL.NOMBRE_CLIENTE, 1, INSTR(TEMPORAL.NOMBRE_CLIENTE, ' ')-1) 
+    inner join EMPLEADO on EMPLEADO.nombre = SUBSTR(TEMPORAL.NOMBRE_EMPLEADO, 1, INSTR(TEMPORAL.NOMBRE_EMPLEADO, ' ')-1) 
+    where TEMPORAL.FECHA_RENTA not like '-' and TEMPORAL.FECHA_RETORNO not like '-' and TEMPORAL.FECHA_PAGO not like '-';
+    
+
+INSERT INTO PELICULA (Titulo, Descripcion, Anio_Lanzamiento, Duracion, Costo_Daño, Dias_Renta, Costo_Renta)
+    select distinct
+    TEMPORAL.NOMBRE_PELICULA,
+    TEMPORAL.DESCRIPCION_PELICULA,
+    TO_NUMBER(REPLACE(TEMPORAL.ANO_LANZAMIENTO,'-',0),'99999'),
+    TO_NUMBER(REPLACE(TEMPORAL.DURACION,'-',0),'99999'),
+    TO_NUMBER(REPLACE(TEMPORAL.COSTO_POR_DANO,'-',0),'99999.99'),
+    TO_NUMBER(REPLACE(TEMPORAL.DIAS_RENTA,'-',0),'99999'),
+    TO_NUMBER(REPLACE(TEMPORAL.COSTO_RENTA,'-',0),'99999.99')
+    from TEMPORAL where TEMPORAL.NOMBRE_PELICULA not like '-';
+
+
+INSERT INTO INVENTARIO (Tienda_Almacenada, Id_Tienda, Id_Pelicula)
+    select distinct
+    TEMPORAL.TIENDA_PELICULA,
+    TIENDA.Id_Tienda,
+    PELICULA.Id_Pelicula
+    from TEMPORAL 
+    inner join TIENDA on TIENDA.nombre = TEMPORAL.TIENDA_PELICULA
+    inner join PELICULA on PELICULA.Titulo = TEMPORAL.NOMBRE_PELICULA;
+    
+    
+INSERT INTO CATEGORIA (Nombre)
+    select distinct
+    TEMPORAL.CATEGORIA_PELICULA
+    from TEMPORAL
+    where TEMPORAL.CATEGORIA_PELICULA not like '-';
+
+
+INSERT INTO IDIOMA (Nombre)
+    select distinct
+    TEMPORAL.LENGUAJE_PELICULA
+    from TEMPORAL
+    where TEMPORAL.LENGUAJE_PELICULA not like '-';
+    
+    
+INSERT INTO ACTOR (Nombre, Apellido)
+    select distinct
+    SUBSTR(TEMPORAL.ACTOR_PELICULA, 1, INSTR(TEMPORAL.ACTOR_PELICULA, ' ')-1),
+    SUBSTR(TEMPORAL.ACTOR_PELICULA, INSTR(TEMPORAL.ACTOR_PELICULA, ' ')+1)
+    from TEMPORAL
+    where TEMPORAL.ACTOR_PELICULA not like '-';
+    
+    
+INSERT INTO CLASIFICACION (Nombre)
+    select distinct
+    TEMPORAL.CLASIFICACION
+    from TEMPORAL
+    where TEMPORAL.CLASIFICACION not like '-';
+    
+    
+INSERT INTO PELICULA_CATEGORIA (Id_Pelicula, Id_Categoria)
+    select distinct
+    PELICULA.Id_Pelicula,
+    CATEGORIA.Id_Categoria
+    from TEMPORAL 
+    inner join PELICULA on PELICULA.Titulo = TEMPORAL.NOMBRE_PELICULA
+    inner join CATEGORIA on CATEGORIA.Nombre = TEMPORAL.CATEGORIA_PELICULA;
+    
+    
+INSERT INTO PELICULA_IDIOMA (Id_Pelicula, Id_Idioma)
+    select distinct
+    PELICULA.Id_Pelicula,
+    IDIOMA.Id_Idioma
+    from TEMPORAL 
+    inner join PELICULA on PELICULA.Titulo = TEMPORAL.NOMBRE_PELICULA
+    inner join IDIOMA on IDIOMA.Nombre = TEMPORAL.LENGUAJE_PELICULA;
+        
+    
+INSERT INTO PELICULA_ACTOR (Id_Pelicula, Id_Actor)
+    select distinct
+    PELICULA.Id_Pelicula,
+    ACTOR.Id_Actor
+    from TEMPORAL 
+    inner join PELICULA on PELICULA.Titulo = TEMPORAL.NOMBRE_PELICULA
+    inner join ACTOR on ACTOR.Nombre = SUBSTR(TEMPORAL.ACTOR_PELICULA, 1, INSTR(TEMPORAL.ACTOR_PELICULA, ' ')-1) 
+    and  ACTOR.Apellido = SUBSTR(TEMPORAL.ACTOR_PELICULA, INSTR(TEMPORAL.ACTOR_PELICULA, ' ')+1);
+        
+    
+INSERT INTO PELICULA_CLASIFICACION (Id_Pelicula, Id_Clasificacion)
+    select distinct
+    PELICULA.Id_Pelicula,
+    CLASIFICACION.Id_Clasificacion
+    from TEMPORAL 
+    inner join PELICULA on PELICULA.Titulo = TEMPORAL.NOMBRE_PELICULA
+    inner join CLASIFICACION on CLASIFICACION.Nombre = TEMPORAL.CLASIFICACION;
+    
